@@ -1,91 +1,161 @@
-from __future__ import division
 import numpy as np
 import pandas as pd
-from scipy import optimize, io
+import matplotlib.pyplot as plt
+import h5py
+
+def load_dataset():
+    train_data = h5py.File('train_catvnoncat.h5', "r")
+    X_train = np.array(train_data["train_set_x"][:])
+    y_train = np.array(train_data["train_set_y"][:])
+    y_train = y_train.reshape((1, y_train.shape[0]))
+
+    test_data = h5py.File('test_catvnoncat.h5', "r")
+    X_test = np.array(test_data["test_set_x"][:])
+    y_test = np.array(test_data["test_set_y"][:])
+    y_test = y_test.reshape((1, y_test.shape[0]))
+
+    classes = np.array(test_data["list_classes"][:])
+    return X_train, y_train, X_test, y_test, classes
+
+def answer_one(X_train, y_train, X_test, y_test):
+    m_train = X_train.shape[0]
+    m_test = X_test.shape[0]
+    num_px = X_train.shape[1]
+
+    print("Number of training examples: m_train = " + str(m_train))
+    print("Number of testing examples: m_test = " + str(m_test))
+    print("Height/Width of each image: num_px = " + str(num_px))
+    print("Each image is of size: (" + str(num_px) + ", " + str(num_px) + ", 3)")
+    print("X_train shape: " + str(X_train.shape))
+    print("y_train shape: " + str(y_train.shape))
+    print("X_test shape: " + str(X_test.shape))
+    print("y_test shape: " + str(y_test.shape))
+    return m_train, m_test, num_px
+
+def answer_two(X_train, y_train, X_test, y_test):
+    X_train_flatten = X_train.reshape(X_train.shape[0], -1).T
+    X_test_flatten = X_test.reshape(X_test.shape[0], -1).T
+
+    print("X_train_flatten shape: " + str(X_train_flatten.shape))
+    print("y_train shape: " + str(y_train.shape))
+    print("X_test_flatten shape: " + str(X_test_flatten.shape))
+    print("y_test shape: " + str(y_test.shape))
+    print("sanity check after reshaping: " + str(X_train_flatten[0:5, 0]))
+    return X_train_flatten, X_test_flatten
 
 def sigmoid(z):
     g =  1/(1+np.exp(-z))
     return g
 
-def sigmoidGradient(z):
-    g = sigmoid(z)*(1 - sigmoid(z))
-    return g
+def initialize_with_zeros(dim):
+    w = np.zeros((dim,1))
+    b = 0
+    assert (w.shape == (dim, 1))
+    assert (isinstance(b, float) or isinstance(b, int))
+    return w, b
 
-def cost_function(theta, X, y, input_layer_size, hidden_layer_size, lamda):
-    num_labels = len(np.unique(y))
-    y = pd.get_dummies(y.ravel()).as_matrix()
-    theta1 = np.reshape(theta[0:(hidden_layer_size*(input_layer_size + 1)),], (hidden_layer_size, input_layer_size + 1))
-    theta2 = np.reshape(theta[(hidden_layer_size * (input_layer_size + 1)):, ], (num_labels, hidden_layer_size + 1))
+def propagate(w, b, X, Y):
+    m = X.shape[1]
+    A = sigmoid(np.dot(w.T, X) + b)
+    cost = (- 1 / m) * np.sum(Y * np.log(A) + (1 - Y) * (np.log(1 - A)))
+    dw = (1 / m) * np.dot(X, (A - Y).T)
+    db = (1 / m) * np.sum(A - Y)
 
-    m, n = X.shape
-    X = np.hstack((np.ones((m, 1)), X))
+    assert (dw.shape == w.shape)
+    assert (db.dtype == float)
+    cost = np.squeeze(cost)
+    assert (cost.shape == ())
+    grads = {"dw": dw, "db": db}
+    return grads, cost
 
-    a1 = X
-    z2 = theta1.dot(a1.T)
-    a2 = sigmoid(z2.T)
-    a2 = np.hstack((np.ones((m, 1)), a2))
-    z3 = theta2.dot(a2.T)
-    hx = sigmoid(z3)
+def optimize(w, b, X, Y, num_iterations, learning_rate, print_cost = False):
+    costs = []
+    for i in range(num_iterations):
+        grads, cost = propagate(w, b, X, Y)
+        dw = grads["dw"]
+        db = grads["db"]
+        w = w - learning_rate * dw
+        b = b - learning_rate * db
+        if i % 100 == 0:
+            costs.append(cost)
+        if print_cost and i % 100 == 0:
+            print("Cost after iteration %i: %f" % (i, cost))
 
-    J = (-1/m)*np.sum((np.log(hx.T)*y + np.log(1-hx).T*(1-y))) + \
-        (lamda/(2*m))*(np.sum(np.square(theta1[:, 1:])) + np.sum(np.square(theta2[:, 1:])))
+    params = {"w": w, "b": b}
+    grads = {"dw": dw, "db": db}
+    return params, grads, costs
 
-    d3 = hx.T - y
-    d2 = theta2[:,1:].T.dot(d3.T)*sigmoidGradient(z2)
+def predict(w, b, X):
+    m = X.shape[1]
+    Y_prediction = np.zeros((1, m))
+    w = w.reshape(X.shape[0], 1)
+    A = sigmoid(np.dot(w.T, X) + b)
+    for i in range(A.shape[1]):
+        Y_prediction[0, i] = 1 if A[0, i] > 0.5 else 0
+    assert (Y_prediction.shape == (1, m))
+    return Y_prediction
 
-    delta1 = d2.dot(a1)
-    delta2 = d3.T.dot(a2)
-
-    theta1_ = np.c_[np.ones((theta1.shape[0], 1)), theta1[:, 1:]]
-    theta2_ = np.c_[np.ones((theta2.shape[0], 1)), theta2[:, 1:]]
-
-    theta1_grad = delta1/m + (theta1_*lamda)/m
-    theta2_grad = delta2/m + (theta2_*lamda)/m
-    grad = np.hstack((theta1_grad.ravel(), theta2_grad.ravel()))
-    return J, grad
-
-def predict(theta1, theta2, X):
-    m, n = X.shape
-    X = np.hstack((np.ones((m, 1)), X))
-    a1 = X
-    z2 = theta1.dot(a1.T)
-    a2 = sigmoid(z2.T)
-    a2 = np.hstack((np.ones((m, 1)), a2))
-    z3 = theta2.dot(a2.T)
-    hx = sigmoid(z3.T)
-    p = np.argmax(hx, axis=1) + 1
-    return p
+def model(X_train, Y_train, X_test, Y_test, num_iterations = 2000, learning_rate = 0.5, print_cost = False):
+    w, b = initialize_with_zeros(dim=X_train.shape[0])
+    parameters, grads, costs = optimize(w, b, X_train, Y_train, num_iterations, learning_rate, print_cost)
+    w = parameters["w"]
+    b = parameters["b"]
+    Y_prediction_test = predict(w, b, X_test)
+    Y_prediction_train = predict(w, b, X_train)
+    print("train accuracy: {} %".format(100 - np.mean(np.abs(Y_prediction_train - Y_train)) * 100))
+    print("test accuracy: {} %".format(100 - np.mean(np.abs(Y_prediction_test - Y_test)) * 100))
+    d = {"costs": costs,
+         "Y_prediction_test": Y_prediction_test,
+         "Y_prediction_train": Y_prediction_train,
+         "w": w,
+         "b": b,
+         "learning_rate": learning_rate,
+         "num_iterations": num_iterations}
+    return d
 
 if __name__ == "__main__":
-    
-    data = io.loadmat('ex4data1.mat')
-    X = data['X']
-    y = data['y']
-    num_labels = len(np.unique(y))
 
-    mat_param = io.loadmat('ex4weights.mat')
-    theta1 = mat_param['Theta1']
-    theta2 = mat_param['Theta2']
+    train_data = h5py.File('train_catvnoncat.h5', "r")
+    X_train = np.array(train_data["train_set_x"][:])
+    y_train = np.array(train_data["train_set_y"][:])
+    y_train = y_train.reshape((1, y_train.shape[0]))
 
-    input_layer_size = np.shape(theta1)[1] - 1
-    hidden_layer_size = np.shape(theta2)[1] - 1
-    theta = np.hstack((theta1.flatten(), theta2.flatten()))
-    lamda = 0
-    J, grad = cost_function(theta, X, y, input_layer_size, hidden_layer_size, lamda)
+    test_data = h5py.File('test_catvnoncat.h5', "r")
+    X_test = np.array(test_data["test_set_x"][:])
+    y_test = np.array(test_data["test_set_y"][:])
+    y_test = y_test.reshape((1, y_test.shape[0]))
 
-    initial_epsilon = 0.12
-    initial_theta1 = np.random.rand(np.shape(theta1)[0], np.shape(theta1)[1])* 2 * initial_epsilon - initial_epsilon
-    initial_theta2 = np.random.rand(np.shape(theta2)[0], np.shape(theta2)[1])* 2 * initial_epsilon - initial_epsilon
-    initial_theta = np.hstack((initial_theta1.flatten(), initial_theta2.flatten()))
-    result = optimize.minimize(fun=cost_function, x0=initial_theta,
-                               args=(X, y, input_layer_size, hidden_layer_size, lamda),
-                               method='TNC', jac=True, options={'maxiter': 150})
+    classes = np.array(test_data["list_classes"][:])
+    m_train = X_train.shape[0]
+    m_test = X_test.shape[0]
+    num_px = X_train.shape[1]
 
-    final_theta = result.x
-    final_theta1 = np.reshape(final_theta[0:(hidden_layer_size*(input_layer_size + 1)),],
-                              (hidden_layer_size, input_layer_size + 1))
-    final_theta2 = np.reshape(final_theta[(hidden_layer_size*(input_layer_size + 1)):,],
-                              (num_labels, hidden_layer_size + 1))
+    X_train_flatten = X_train.reshape(X_train.shape[0], -1).T
+    X_test_flatten = X_test.reshape(X_test.shape[0], -1).T
+    X_train = X_train_flatten/255
+    X_test = X_test_flatten/255
+    d = model(X_train, y_train, X_test, y_test, num_iterations=2000, learning_rate=0.005, print_cost=True)
 
-    pred = predict(final_theta1, final_theta2, X)
-    print ('Training Set Accuracy:', np.mean(pred == y.ravel())*100)
+    costs = np.squeeze(d['costs'])
+    plt.figure(1)
+    plt.plot(costs)
+    plt.ylabel('cost')
+    plt.xlabel('iterations (per hundreds)')
+    plt.title("Learning rate =" + str(d["learning_rate"]))
+    plt.show()
+
+    learning_rates = [0.01, 0.001, 0.0001]
+    models = {}
+    for i in learning_rates:
+        print("learning rate is: " + str(i))
+        models[str(i)] = model(X_train, y_train, X_test, y_test, num_iterations=1500, learning_rate=i, print_cost=False)
+        print('\n' + "-------------------------------------------------------" + '\n')
+
+    for i in learning_rates:
+        plt.plot(np.squeeze(models[str(i)]["costs"]), label=str(models[str(i)]["learning_rate"]))
+
+    plt.figure(2)
+    plt.ylabel('cost')
+    plt.xlabel('iterations (hundreds)')
+    legend = plt.legend(loc='upper center', shadow=True)
+    plt.show()
