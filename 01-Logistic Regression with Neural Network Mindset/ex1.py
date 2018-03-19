@@ -1,47 +1,6 @@
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 import h5py
-
-def load_dataset():
-    train_data = h5py.File('train_catvnoncat.h5', "r")
-    X_train = np.array(train_data["train_set_x"][:])
-    y_train = np.array(train_data["train_set_y"][:])
-    y_train = y_train.reshape((1, y_train.shape[0]))
-
-    test_data = h5py.File('test_catvnoncat.h5', "r")
-    X_test = np.array(test_data["test_set_x"][:])
-    y_test = np.array(test_data["test_set_y"][:])
-    y_test = y_test.reshape((1, y_test.shape[0]))
-
-    classes = np.array(test_data["list_classes"][:])
-    return X_train, y_train, X_test, y_test, classes
-
-def answer_one(X_train, y_train, X_test, y_test):
-    m_train = X_train.shape[0]
-    m_test = X_test.shape[0]
-    num_px = X_train.shape[1]
-
-    print("Number of training examples: m_train = " + str(m_train))
-    print("Number of testing examples: m_test = " + str(m_test))
-    print("Height/Width of each image: num_px = " + str(num_px))
-    print("Each image is of size: (" + str(num_px) + ", " + str(num_px) + ", 3)")
-    print("X_train shape: " + str(X_train.shape))
-    print("y_train shape: " + str(y_train.shape))
-    print("X_test shape: " + str(X_test.shape))
-    print("y_test shape: " + str(y_test.shape))
-    return m_train, m_test, num_px
-
-def answer_two(X_train, y_train, X_test, y_test):
-    X_train_flatten = X_train.reshape(X_train.shape[0], -1).T
-    X_test_flatten = X_test.reshape(X_test.shape[0], -1).T
-
-    print("X_train_flatten shape: " + str(X_train_flatten.shape))
-    print("y_train shape: " + str(y_train.shape))
-    print("X_test_flatten shape: " + str(X_test_flatten.shape))
-    print("y_test shape: " + str(y_test.shape))
-    print("sanity check after reshaping: " + str(X_train_flatten[0:5, 0]))
-    return X_train_flatten, X_test_flatten
 
 def sigmoid(z):
     g =  1/(1+np.exp(-z))
