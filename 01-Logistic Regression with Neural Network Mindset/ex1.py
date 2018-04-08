@@ -110,10 +110,10 @@ if __name__ == "__main__":
         models[str(i)] = model(X_train, y_train, X_test, y_test, num_iterations=1500, learning_rate=i, print_cost=False)
         print('\n' + "-------------------------------------------------------" + '\n')
 
+    plt.figure(2)
     for i in learning_rates:
         plt.plot(np.squeeze(models[str(i)]["costs"]), label=str(models[str(i)]["learning_rate"]))
 
-    plt.figure(2)
     plt.ylabel('cost')
     plt.xlabel('iterations (hundreds)')
     legend = plt.legend(loc='upper center', shadow=True)

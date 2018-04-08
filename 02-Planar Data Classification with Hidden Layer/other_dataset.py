@@ -157,8 +157,16 @@ def predict(parameters, X):
 
 if __name__ == "__main__":
 
-    np.random.seed(1)
-    X, Y = load_planar_dataset()
+    noisy_circles, noisy_moons, blobs, gaussian_quantiles, no_structure = load_extra_datasets()
+    datasets = {"noisy_circles": noisy_circles,
+                "noisy_moons": noisy_moons,
+                "blobs": blobs,
+                "gaussian_quantiles": gaussian_quantiles}
+    dataset = "gaussian_quantiles"
+    X, Y = datasets[dataset]
+    X, Y = X.T, Y.reshape(1, Y.shape[0])
+    if dataset == "blobs":
+        Y = Y % 2
     plt.figure(1)
     plt.scatter(X[0, :], X[1, :], c=Y.ravel(), s=40, cmap=plt.cm.Spectral)
     plt.show()
@@ -239,3 +247,5 @@ if __name__ == "__main__":
         predictions = predict(parameters, X)
         accuracy = accuracy_score(Y.ravel(), predictions.ravel())
         print("Accuracy for {} hidden units: {}%".format(n_h, accuracy*100))
+
+
