@@ -1,4 +1,7 @@
 import numpy as np
+from testcases import linear_forward_test_case, linear_activation_forward_test_case, L_model_forward_test_case, \
+    compute_cost_test_case, linear_backward_test_case, linear_activation_backward_test_case, \
+    L_model_backward_test_case, update_parameters_test_case
 
 def sigmoid(Z):
     A =  1/(1+np.exp(-Z))
@@ -56,13 +59,6 @@ def linear_forward(A, W, b):
     cache = (A, W, b)
     return Z, cache
 
-def linear_forward_test_case():
-    np.random.seed(1)
-    A = np.random.randn(3, 2)
-    W = np.random.randn(1, 3)
-    b = np.random.randn(1, 1)
-    return A, W, b
-
 def linear_activation_forward(A_prev, W, b, activation):
     if activation == "sigmoid":
         Z, linear_cache = linear_forward(A_prev, W, b)
@@ -73,13 +69,6 @@ def linear_activation_forward(A_prev, W, b, activation):
     assert (A.shape == (W.shape[0], A_prev.shape[1]))
     cache = (linear_cache, activation_cache)
     return A, cache
-
-def linear_activation_forward_test_case():
-    np.random.seed(2)
-    A_prev = np.random.randn(3,2)
-    W = np.random.randn(1,3)
-    b = np.random.randn(1,1)
-    return A_prev, W, b
 
 def L_model_forward(X, parameters):
     caches = []
@@ -94,27 +83,12 @@ def L_model_forward(X, parameters):
     assert (AL.shape == (1, X.shape[1]))
     return AL, caches
 
-def L_model_forward_test_case():
-    np.random.seed(1)
-    X = np.random.randn(4, 2)
-    W1 = np.random.randn(3, 4)
-    b1 = np.random.randn(3, 1)
-    W2 = np.random.randn(1, 3)
-    b2 = np.random.randn(1, 1)
-    parameters = {"W1": W1,"b1": b1,"W2": W2,"b2": b2}
-    return X, parameters
-
 def compute_cost(AL, Y):
     m = Y.shape[1]
     cost = (-1./ m) * np.sum(np.multiply(Y, np.log(AL)) + np.multiply((1-Y), np.log( 1-AL)))
     cost = np.squeeze(cost)
     assert (cost.shape == ())
     return cost
-
-def compute_cost_test_case():
-    Y = np.asarray([[1, 1, 1]])
-    aL = np.array([[.8, .9, 0.4]])
-    return Y, aL
 
 def linear_backward(dZ, cache):
     A_prev, W, b = cache
@@ -127,15 +101,6 @@ def linear_backward(dZ, cache):
     assert (db.shape == b.shape)
     return dA_prev, dW, db
 
-def linear_backward_test_case():
-    np.random.seed(1)
-    dZ = np.random.randn(1,2)
-    A = np.random.randn(3,2)
-    W = np.random.randn(1,3)
-    b = np.random.randn(1,1)
-    linear_cache = (A, W, b)
-    return dZ, linear_cache
-
 def linear_activation_backward(dA, cache, activation):
     linear_cache, activation_cache = cache
     if activation == "relu":
@@ -145,19 +110,6 @@ def linear_activation_backward(dA, cache, activation):
         dZ = sigmoid_backward(dA, activation_cache)
         dA_prev, dW, db = linear_backward(dZ, linear_cache)
     return dA_prev, dW, db
-
-
-def linear_activation_backward_test_case():
-    np.random.seed(2)
-    dA = np.random.randn(1, 2)
-    A = np.random.randn(3, 2)
-    W = np.random.randn(1, 3)
-    b = np.random.randn(1, 1)
-    Z = np.random.randn(1, 2)
-    linear_cache = (A, W, b)
-    activation_cache = Z
-    linear_activation_cache = (linear_cache, activation_cache)
-    return dA, linear_activation_cache
 
 def L_model_backward(AL, Y, caches):
     grads = {}
@@ -175,49 +127,12 @@ def L_model_backward(AL, Y, caches):
         grads["db" + str(l + 1)] = db_temp
     return grads
 
-def L_model_backward_test_case():
-    np.random.seed(3)
-    AL = np.random.randn(1, 2)
-    Y = np.array([[1, 0]])
-
-    A1 = np.random.randn(4,2)
-    W1 = np.random.randn(3,4)
-    b1 = np.random.randn(3,1)
-    Z1 = np.random.randn(3,2)
-    linear_cache_activation_1 = ((A1, W1, b1), Z1)
-
-    A2 = np.random.randn(3,2)
-    W2 = np.random.randn(1,3)
-    b2 = np.random.randn(1,1)
-    Z2 = np.random.randn(1,2)
-    linear_cache_activation_2 = ( (A2, W2, b2), Z2)
-
-    caches = (linear_cache_activation_1, linear_cache_activation_2)
-    return AL, Y, caches
-
 def update_parameters(parameters, grads, learning_rate):
     L = len(parameters) // 2
     for l in range(L):
         parameters["W" + str(l + 1)] = parameters["W" + str(l + 1)] - learning_rate * grads["dW" + str(l + 1)]
         parameters["b" + str(l + 1)] = parameters["b" + str(l + 1)] - learning_rate * grads["db" + str(l + 1)]
     return parameters
-
-
-def update_parameters_test_case():
-    np.random.seed(2)
-    W1 = np.random.randn(3, 4)
-    b1 = np.random.randn(3, 1)
-    W2 = np.random.randn(1, 3)
-    b2 = np.random.randn(1, 1)
-    parameters = {"W1": W1, "b1": b1, "W2": W2, "b2": b2}
-
-    np.random.seed(3)
-    dW1 = np.random.randn(3, 4)
-    db1 = np.random.randn(3, 1)
-    dW2 = np.random.randn(1, 3)
-    db2 = np.random.randn(1, 1)
-    grads = {"dW1": dW1, "db1": db1, "dW2": dW2, "db2": db2}
-    return parameters, grads
 
 if __name__ == "__main__":
 

@@ -3,8 +3,7 @@ from sklearn.datasets import make_circles,make_blobs, make_moons, make_gaussian_
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LogisticRegressionCV
 from sklearn.metrics import accuracy_score
-from testcases import layer_sizes_test_case, initialize_parameters_test_case, forward_propagation_test_case, \
-    compute_cost_test_case, backward_propagation_test_case, update_parameters_test_case, nn_model_test_case, predict_test_case
+from testcases import *
 
 def sigmoid(z):
     g =  1./(1+np.exp(-z))
