@@ -256,6 +256,7 @@ def test_with_own_image():
     plt.imshow(image)
     print("y = " + str(np.squeeze(my_predicted_image)) + ", your L-layer model predicts a \"" + classes[
         int(np.squeeze(my_predicted_image)),].decode("utf-8") + "\" picture.")
+
 if __name__ == "__main__":
     train_x_orig, train_y, test_x_orig, test_y, classes = load_data()
 
